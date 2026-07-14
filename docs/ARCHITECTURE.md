@@ -67,10 +67,18 @@ negócio. Testar um caso de uso não deve exigir subir um banco real.
 
 Hierarquia: **Empresa (tenant) → Filial (branch) → Dados operacionais**.
 
-- Todo caso de uso que toca dados recebe um `TenantContext` (ver `shared/domain`).
-- Toda tabela de dados de tenant tem coluna `tenant_id`.
-- Além do filtro na aplicação, o **Postgres RLS** recusa vazar dados entre
-  empresas mesmo que um bug esqueça o `WHERE tenant_id = ...` (defesa em profundidade).
+- Todo caso de uso que toca dados recebe um `TenantContext` (ver `shared/domain`);
+  derivado da sessão por `requireTenantContext()` (`src/lib/auth/tenant.ts`).
+- Toda tabela de dados de tenant tem coluna `company_id` e **RLS habilitado**.
+- **Acesso via `withTenant(tenantId, fn)`** (`src/db/tenant.ts`): abre uma
+  transação, assume o papel `app_tenant` (`SET LOCAL ROLE`) e define
+  `app.current_company_id`. Todo repositório de tenant DEVE usar isso.
+- **Por que o papel `app_tenant`:** o dono do banco (`neondb_owner`) tem
+  `BYPASSRLS` e ignoraria as políticas. O `app_tenant` não tem esse privilégio,
+  então o RLS realmente vale. Isolamento testado (empresa A não vê dados de B).
+- **Ao criar uma nova tabela de tenant:** adicionar `company_id`, habilitar RLS
+  + política por `current_setting('app.current_company_id')`, e
+  `GRANT ... TO app_tenant`. Seguir a migration de `customers` como modelo.
 
 ## Tratamento de erros
 
