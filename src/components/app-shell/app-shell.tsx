@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { OrganizationSwitcher, UserButton } from "@clerk/nextjs";
+import { UserButton } from "@clerk/nextjs";
 import { Menu } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -136,11 +136,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
           <div className="flex-1" />
 
-          <OrganizationSwitcher
-            hidePersonal
-            afterCreateOrganizationUrl="/dashboard"
-            afterSelectOrganizationUrl="/dashboard"
-          />
           <ThemeToggle />
           <UserButton />
         </header>
