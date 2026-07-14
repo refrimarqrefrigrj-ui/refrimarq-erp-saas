@@ -1,0 +1,3 @@
+# Padroniza quebras de linha: LF dentro do repositório, autodetecção de binários.
+# Evita ruído de CRLF/LF entre máquinas (Windows/Mac/Linux) quando o time crescer.
+* text=auto eol=lf
