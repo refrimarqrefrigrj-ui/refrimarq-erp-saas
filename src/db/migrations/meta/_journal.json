@@ -15,6 +15,34 @@
       "when": 1784048965257,
       "tag": "20260714170925_wealthy_puck",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1784051354979,
+      "tag": "20260714174914_tired_post",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1784051375413,
+      "tag": "20260714174935_customers_rls",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1784052012258,
+      "tag": "20260714180012_tenant_role",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1784052162812,
+      "tag": "20260714180242_customers_rls_nullif",
+      "breakpoints": true
     }
   ]
 }
