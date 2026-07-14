@@ -1,29 +1,33 @@
 import { redirect } from "next/navigation";
-import { auth } from "@clerk/nextjs/server";
 
+import { auth } from "@/auth";
 import { AppShell } from "@/components/app-shell/app-shell";
 
 /**
  * Layout de toda a área autenticada (route group `(app)`, não aparece na URL).
  *
- * Guarda de acesso: sem usuário logado -> /login.
- *
- * NOTA (multi-tenancy): decidimos NÃO usar as "Organizations" do Clerk para o
- * MVP (evita o atrito de forçar criação/seleção de empresa no login). O tenant
- * será resolvido no nosso banco (uma empresa por usuário dono, criada
- * automaticamente) quando construirmos o módulo de Clientes. Ver task de
- * "tenant resolution".
+ * Guarda de acesso (resource-based auth): sem sessão válida -> /login.
+ * Passa os dados do usuário (nome/e-mail) para a casca do app.
  */
 export default async function AppLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { userId } = await auth();
+  const session = await auth();
 
-  if (!userId) {
+  if (!session?.user) {
     redirect("/login");
   }
 
-  return <AppShell>{children}</AppShell>;
+  return (
+    <AppShell
+      user={{
+        name: session.user.name ?? "Usuário",
+        email: session.user.email ?? "",
+      }}
+    >
+      {children}
+    </AppShell>
+  );
 }

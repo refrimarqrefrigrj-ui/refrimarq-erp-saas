@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { UserButton } from "@clerk/nextjs";
 import { Menu } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -16,6 +15,7 @@ import {
 } from "@/components/ui/sheet";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { navItems } from "./nav";
+import { UserMenu } from "./user-menu";
 
 /** Marca (logo + nome) usada no topo da barra lateral. */
 function Brand() {
@@ -89,9 +89,15 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
 
 /**
  * Casca do app autenticado: barra lateral (desktop), menu deslizante (mobile)
- * e topo com seletor de empresa, tema e menu do usuário.
+ * e topo com tema e menu do usuário.
  */
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell({
+  user,
+  children,
+}: {
+  user: { name: string; email: string };
+  children: React.ReactNode;
+}) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
@@ -137,7 +143,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="flex-1" />
 
           <ThemeToggle />
-          <UserButton />
+          <UserMenu user={user} />
         </header>
 
         <main className="flex-1 overflow-y-auto">{children}</main>

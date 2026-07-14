@@ -8,6 +8,13 @@
       "when": 1783996005030,
       "tag": "20260714022645_simple_galactus",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1784048965257,
+      "tag": "20260714170925_wealthy_puck",
+      "breakpoints": true
     }
   ]
 }

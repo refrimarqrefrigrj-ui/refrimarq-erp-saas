@@ -1,4 +1,4 @@
-import { currentUser } from "@clerk/nextjs/server";
+import { auth } from "@/auth";
 import { Wallet, ClipboardList, FileText, FileCheck2 } from "lucide-react";
 
 import {
@@ -23,8 +23,8 @@ const kpis = [
 ];
 
 export default async function DashboardPage() {
-  const user = await currentUser();
-  const firstName = user?.firstName ?? "por aqui";
+  const session = await auth();
+  const firstName = session?.user?.name?.split(/\s+/)[0] ?? "por aqui";
 
   return (
     <div className="mx-auto w-full max-w-6xl space-y-8 p-6">

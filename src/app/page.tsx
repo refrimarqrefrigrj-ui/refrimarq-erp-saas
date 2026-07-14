@@ -4,8 +4,7 @@ import Link from "next/link";
  * Página inicial pública (landing) do ERP HVAC.
  *
  * Provisória do Módulo 0: apresenta o produto e leva ao login.
- * O botão "Entrar" apontará para o fluxo de autenticação do Clerk
- * assim que a auth for conectada.
+ * O botão "Entrar" leva para a tela de autenticação (/login).
  */
 
 const features = [
