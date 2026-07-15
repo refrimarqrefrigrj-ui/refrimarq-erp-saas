@@ -12,12 +12,17 @@ import {
 
 import { requireTenantContext } from "@/lib/auth/tenant";
 import { listTransactions } from "@/modules/finance/application/list-transactions";
-import { getFinanceSummary } from "@/modules/finance/application/transaction-actions";
+import {
+  getFinanceSummary,
+  getFaturamento,
+} from "@/modules/finance/application/transaction-actions";
 import { drizzleTransactionRepository } from "@/modules/finance/infrastructure/drizzle-transaction-repository";
-import { isOverdue } from "@/modules/finance/domain/transaction";
+import { isOverdue, today } from "@/modules/finance/domain/transaction";
 import { formatBRLFromCents } from "@/lib/masks";
 import { cn } from "@/lib/utils";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -41,17 +46,25 @@ const FILTERS = [
   { label: "A pagar", tipo: "payable" },
 ] as const;
 
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
 export default async function FinanceiroPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tipo?: string }>;
+  searchParams: Promise<{ tipo?: string; de?: string; ate?: string }>;
 }) {
-  const { tipo } = await searchParams;
+  const { tipo, de, ate } = await searchParams;
   const ctx = await requireTenantContext();
 
-  const [summary, items] = await Promise.all([
+  // Período padrão: do 1º dia do mês atual até hoje.
+  const ref = today();
+  const from = de && DATE_RE.test(de) ? de : `${ref.slice(0, 7)}-01`;
+  const to = ate && DATE_RE.test(ate) ? ate : ref;
+
+  const [summary, items, faturamento] = await Promise.all([
     getFinanceSummary(drizzleTransactionRepository, ctx),
     listTransactions(drizzleTransactionRepository, ctx, { direction: tipo }),
+    getFaturamento(drizzleTransactionRepository, ctx, from, to),
   ]);
 
   const balance = summary.receivablePending - summary.payablePending;
@@ -144,6 +157,94 @@ export default async function FinanceiroPage({
           );
         })}
       </div>
+
+      {/* Faturamento por período */}
+      <Card>
+        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <CardTitle>Faturamento por período</CardTitle>
+          <form action="/financeiro" className="flex flex-wrap items-end gap-2">
+            {tipo ? <input type="hidden" name="tipo" value={tipo} /> : null}
+            <div className="space-y-1">
+              <Label htmlFor="de" className="text-xs text-muted-foreground">
+                De
+              </Label>
+              <Input
+                id="de"
+                name="de"
+                type="date"
+                defaultValue={from}
+                className="h-9"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="ate" className="text-xs text-muted-foreground">
+                Até
+              </Label>
+              <Input
+                id="ate"
+                name="ate"
+                type="date"
+                defaultValue={to}
+                className="h-9"
+              />
+            </div>
+            <Button type="submit" variant="secondary">
+              Filtrar
+            </Button>
+          </form>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <div className="text-2xl font-semibold text-emerald-600 dark:text-emerald-400">
+              {formatBRLFromCents(faturamento.totalCents)}
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {faturamento.count} recebimento(s) no período selecionado
+            </p>
+          </div>
+
+          {faturamento.items.length > 0 ? (
+            <div className="rounded-lg border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Recebimento</TableHead>
+                    <TableHead>Cliente</TableHead>
+                    <TableHead>Data</TableHead>
+                    <TableHead className="text-right">Valor</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {faturamento.items.map((i) => (
+                    <TableRow key={i.id}>
+                      <TableCell className="font-medium">
+                        {i.description}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {i.customerName ?? "—"}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {i.paidDate
+                          ? new Date(i.paidDate + "T00:00:00").toLocaleDateString(
+                              "pt-BR",
+                            )
+                          : "—"}
+                      </TableCell>
+                      <TableCell className="text-right font-medium text-emerald-600 dark:text-emerald-400">
+                        {formatBRLFromCents(i.amountCents)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Nenhum recebimento no período selecionado.
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Filtros */}
       <div className="flex flex-wrap gap-2">

@@ -16,8 +16,30 @@ export interface FinanceSummary {
   receivedMonth: number;
 }
 
+/** Um recebimento (conta a receber quitada) para o relatório por período. */
+export interface ReceivedItem {
+  id: string;
+  description: string;
+  customerName: string | null;
+  paidDate: string | null;
+  amountCents: number;
+}
+
+/** Faturamento (recebimentos) em um intervalo de datas. */
+export interface FaturamentoPeriod {
+  totalCents: number;
+  count: number;
+  items: ReceivedItem[];
+}
+
 /** Porta de persistência de lançamentos. Operações restritas ao tenant. */
 export interface TransactionRepository {
+  /** Faturamento no período: contas a receber quitadas com paid_date em [from, to]. */
+  faturamento(
+    ctx: TenantContext,
+    from: string,
+    to: string,
+  ): Promise<FaturamentoPeriod>;
   create(
     ctx: TenantContext,
     data: NormalizedTransaction,

@@ -1,5 +1,9 @@
 import type { TenantContext } from "@/shared/domain";
-import type { FinanceSummary, TransactionRepository } from "./transaction-repository";
+import type {
+  FaturamentoPeriod,
+  FinanceSummary,
+  TransactionRepository,
+} from "./transaction-repository";
 
 /** Caso de uso: excluir um lançamento. */
 export async function deleteTransaction(
@@ -25,4 +29,14 @@ export async function getFinanceSummary(
   ctx: TenantContext,
 ): Promise<FinanceSummary> {
   return repo.summary(ctx);
+}
+
+/** Caso de uso: faturamento (recebimentos) em um período. */
+export async function getFaturamento(
+  repo: TransactionRepository,
+  ctx: TenantContext,
+  from: string,
+  to: string,
+): Promise<FaturamentoPeriod> {
+  return repo.faturamento(ctx, from, to);
 }

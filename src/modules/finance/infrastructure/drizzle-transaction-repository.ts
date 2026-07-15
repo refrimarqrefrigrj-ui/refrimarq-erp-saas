@@ -1,4 +1,4 @@
-import { and, desc, eq, ilike, sql } from "drizzle-orm";
+import { and, desc, eq, gte, ilike, lte, sql } from "drizzle-orm";
 
 import {
   customers,
@@ -8,6 +8,7 @@ import {
 import { withTenant } from "@/db/tenant";
 import type { TenantContext } from "@/shared/domain";
 import type {
+  FaturamentoPeriod,
   FinanceSummary,
   TransactionRepository,
 } from "../application/transaction-repository";
@@ -144,6 +145,49 @@ export const drizzleTransactionRepository: TransactionRepository = {
         .update(financeTransactions)
         .set({ status: "paid", paidDate: today(), updatedAt: new Date() })
         .where(eq(financeTransactions.id, id));
+    });
+  },
+
+  async faturamento(
+    ctx: TenantContext,
+    from: string,
+    to: string,
+  ): Promise<FaturamentoPeriod> {
+    return withTenant(ctx.tenantId, async (tx) => {
+      const cond = and(
+        eq(financeTransactions.direction, "receivable"),
+        eq(financeTransactions.status, "paid"),
+        gte(financeTransactions.paidDate, from),
+        lte(financeTransactions.paidDate, to),
+      );
+
+      const [agg] = await tx
+        .select({
+          total: sql<string>`coalesce(sum(${financeTransactions.amountCents}), 0)`,
+          count: sql<string>`count(*)`,
+        })
+        .from(financeTransactions)
+        .where(cond);
+
+      const items = await tx
+        .select({
+          id: financeTransactions.id,
+          description: financeTransactions.description,
+          customerName: customers.name,
+          paidDate: financeTransactions.paidDate,
+          amountCents: financeTransactions.amountCents,
+        })
+        .from(financeTransactions)
+        .leftJoin(customers, eq(customers.id, financeTransactions.customerId))
+        .where(cond)
+        .orderBy(desc(financeTransactions.paidDate))
+        .limit(100);
+
+      return {
+        totalCents: Number(agg.total),
+        count: Number(agg.count),
+        items,
+      };
     });
   },
 
