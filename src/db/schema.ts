@@ -183,6 +183,38 @@ export const obras = pgTable("obras", {
     .defaultNow(),
 });
 
+/**
+ * Lançamento financeiro (conta a receber ou a pagar). Dados de tenant (RLS).
+ * Valor em CENTAVOS (inteiro). Vínculos opcionais com cliente e obra.
+ */
+export const financeTransactions = pgTable("finance_transactions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  companyId: uuid("company_id")
+    .notNull()
+    .references(() => companies.id, { onDelete: "cascade" }),
+  // "receivable" (a receber) | "payable" (a pagar)
+  direction: text("direction").notNull(),
+  description: text("description").notNull(),
+  amountCents: bigint("amount_cents", { mode: "number" }).notNull().default(0),
+  // "pending" | "paid"
+  status: text("status").notNull().default("pending"),
+  dueDate: date("due_date", { mode: "string" }), // vencimento
+  paidDate: date("paid_date", { mode: "string" }),
+  category: text("category"), // categoria / centro de custo
+  // Vínculos opcionais (mantêm o lançamento se o vínculo for removido).
+  customerId: uuid("customer_id").references(() => customers.id, {
+    onDelete: "set null",
+  }),
+  obraId: uuid("obra_id").references(() => obras.id, { onDelete: "set null" }),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
 // Tipos inferidos para uso na aplicação (type-safe de ponta a ponta).
 export type Company = typeof companies.$inferSelect;
 export type NewCompany = typeof companies.$inferInsert;
@@ -200,3 +232,5 @@ export type EquipmentRow = typeof equipment.$inferSelect;
 export type NewEquipmentRow = typeof equipment.$inferInsert;
 export type ObraRow = typeof obras.$inferSelect;
 export type NewObraRow = typeof obras.$inferInsert;
+export type FinanceTransactionRow = typeof financeTransactions.$inferSelect;
+export type NewFinanceTransactionRow = typeof financeTransactions.$inferInsert;

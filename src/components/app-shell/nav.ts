@@ -35,5 +35,5 @@ export const navItems: NavItem[] = [
   },
   { label: "Agenda", href: "/agenda", icon: CalendarDays, disabled: true },
   { label: "Orçamentos", href: "/orcamentos", icon: FileText, disabled: true },
-  { label: "Financeiro", href: "/financeiro", icon: Wallet, disabled: true },
+  { label: "Financeiro", href: "/financeiro", icon: Wallet },
 ];
