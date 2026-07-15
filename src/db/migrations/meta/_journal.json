@@ -64,6 +64,20 @@
       "when": 1784084571631,
       "tag": "20260715030251_equipment_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1784085586455,
+      "tag": "20260715031946_obras",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1784085590470,
+      "tag": "20260715031950_obras_rls",
+      "breakpoints": true
     }
   ]
 }

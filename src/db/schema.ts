@@ -4,6 +4,7 @@ import {
   text,
   boolean,
   integer,
+  bigint,
   date,
   timestamp,
 } from "drizzle-orm/pg-core";
@@ -151,6 +152,37 @@ export const equipment = pgTable("equipment", {
     .defaultNow(),
 });
 
+/**
+ * Obra corporativa: projeto (ex.: instalação) para um cliente, com valor de
+ * contrato e acompanhamento de status. Dados de tenant (RLS).
+ * Valor guardado em CENTAVOS (inteiro) para não usar ponto flutuante em dinheiro.
+ */
+export const obras = pgTable("obras", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  companyId: uuid("company_id")
+    .notNull()
+    .references(() => companies.id, { onDelete: "cascade" }),
+  customerId: uuid("customer_id")
+    .notNull()
+    .references(() => customers.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  description: text("description"),
+  // proposta | em_andamento | concluida | cancelada
+  status: text("status").notNull().default("proposta"),
+  valueCents: bigint("value_cents", { mode: "number" }).notNull().default(0),
+  location: text("location"),
+  startDate: date("start_date", { mode: "string" }),
+  expectedEndDate: date("expected_end_date", { mode: "string" }),
+  endedAt: date("ended_at", { mode: "string" }),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
 // Tipos inferidos para uso na aplicação (type-safe de ponta a ponta).
 export type Company = typeof companies.$inferSelect;
 export type NewCompany = typeof companies.$inferInsert;
@@ -166,3 +198,5 @@ export type CustomerContactRow = typeof customerContacts.$inferSelect;
 export type NewCustomerContactRow = typeof customerContacts.$inferInsert;
 export type EquipmentRow = typeof equipment.$inferSelect;
 export type NewEquipmentRow = typeof equipment.$inferInsert;
+export type ObraRow = typeof obras.$inferSelect;
+export type NewObraRow = typeof obras.$inferInsert;
