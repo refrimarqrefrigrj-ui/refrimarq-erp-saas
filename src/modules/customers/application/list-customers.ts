@@ -1,5 +1,5 @@
 import type { TenantContext } from "@/shared/domain";
-import type { Customer } from "../domain/customer";
+import type { CustomerListItem } from "../domain/customer";
 import type { CustomerRepository } from "./customer-repository";
 
 /**
@@ -9,6 +9,6 @@ export async function listCustomers(
   repo: CustomerRepository,
   ctx: TenantContext,
   opts?: { search?: string },
-): Promise<Customer[]> {
+): Promise<CustomerListItem[]> {
   return repo.list(ctx, opts);
 }

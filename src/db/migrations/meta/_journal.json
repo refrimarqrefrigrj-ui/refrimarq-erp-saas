@@ -43,6 +43,13 @@
       "when": 1784052162812,
       "tag": "20260714180242_customers_rls_nullif",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1784083735093,
+      "tag": "20260715024855_customer_addresses_contacts",
+      "breakpoints": true
     }
   ]
 }

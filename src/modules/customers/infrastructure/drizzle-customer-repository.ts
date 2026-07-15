@@ -1,79 +1,170 @@
-import { desc, eq, ilike, or } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, or } from "drizzle-orm";
 
-import { customers, type CustomerRow } from "@/db/schema";
-import { withTenant } from "@/db/tenant";
+import {
+  customers,
+  customerAddresses,
+  customerContacts,
+  type CustomerRow,
+  type CustomerAddressRow,
+  type CustomerContactRow,
+} from "@/db/schema";
+import { withTenant, type TenantDb } from "@/db/tenant";
 import type { TenantContext } from "@/shared/domain";
 import type { CustomerRepository } from "../application/customer-repository";
-import type { Customer, CreateCustomerInput } from "../domain/customer";
+import type {
+  Customer,
+  CustomerAddress,
+  CustomerContact,
+  CustomerListItem,
+  CustomerType,
+  NormalizedCustomer,
+} from "../domain/customer";
 
-/** Converte a linha do banco para o modelo de domínio. */
-function toDomain(row: CustomerRow): Customer {
+function addrToDomain(r: CustomerAddressRow): CustomerAddress {
+  return {
+    id: r.id,
+    label: r.label,
+    zipCode: r.zipCode,
+    street: r.street,
+    number: r.number,
+    complement: r.complement,
+    neighborhood: r.neighborhood,
+    city: r.city,
+    state: r.state,
+    isPrimary: r.isPrimary,
+  };
+}
+
+function contactToDomain(r: CustomerContactRow): CustomerContact {
+  return { id: r.id, name: r.name, role: r.role, email: r.email, phone: r.phone };
+}
+
+function customerToDomain(
+  row: CustomerRow,
+  addresses: CustomerAddress[],
+  contacts: CustomerContact[],
+): Customer {
   return {
     id: row.id,
-    type: row.type as Customer["type"],
+    type: row.type as CustomerType,
     name: row.name,
     document: row.document,
     email: row.email,
     phone: row.phone,
-    zipCode: row.zipCode,
-    street: row.street,
-    number: row.number,
-    complement: row.complement,
-    neighborhood: row.neighborhood,
-    city: row.city,
-    state: row.state,
     notes: row.notes,
+    addresses,
+    contacts,
     createdAt: row.createdAt,
   };
 }
 
-/** Campos gravados a partir da entrada validada (create/update). */
-function toValues(data: CreateCustomerInput) {
-  return {
-    type: data.type,
-    name: data.name,
-    document: data.document ?? null,
-    email: data.email ?? null,
-    phone: data.phone ?? null,
-    zipCode: data.zipCode ?? null,
-    street: data.street ?? null,
-    number: data.number ?? null,
-    complement: data.complement ?? null,
-    neighborhood: data.neighborhood ?? null,
-    city: data.city ?? null,
-    state: data.state ?? null,
-    notes: data.notes ?? null,
-  };
+/** Carrega um cliente completo (com endereços e contatos). */
+async function loadCustomer(tx: TenantDb, id: string): Promise<Customer | null> {
+  const [row] = await tx
+    .select()
+    .from(customers)
+    .where(eq(customers.id, id))
+    .limit(1);
+  if (!row) return null;
+
+  const addrs = await tx
+    .select()
+    .from(customerAddresses)
+    .where(eq(customerAddresses.customerId, id))
+    .orderBy(desc(customerAddresses.isPrimary), asc(customerAddresses.createdAt));
+
+  const cts = await tx
+    .select()
+    .from(customerContacts)
+    .where(eq(customerContacts.customerId, id))
+    .orderBy(asc(customerContacts.createdAt));
+
+  return customerToDomain(row, addrs.map(addrToDomain), cts.map(contactToDomain));
 }
 
-/**
- * Implementação Drizzle do CustomerRepository.
- *
- * Todo acesso passa por `withTenant`, que assume o papel restrito e define a
- * empresa ativa — o RLS então garante o isolamento por tenant no banco. As
- * operações por id (buscar/editar/excluir) também ficam automaticamente
- * restritas à empresa da sessão.
- */
+/** Insere endereços e contatos de um cliente. */
+async function writeChildren(
+  tx: TenantDb,
+  companyId: string,
+  customerId: string,
+  data: NormalizedCustomer,
+) {
+  if (data.addresses.length > 0) {
+    await tx.insert(customerAddresses).values(
+      data.addresses.map((a) => ({
+        companyId,
+        customerId,
+        label: a.label,
+        zipCode: a.zipCode,
+        street: a.street,
+        number: a.number,
+        complement: a.complement,
+        neighborhood: a.neighborhood,
+        city: a.city,
+        state: a.state,
+        isPrimary: a.isPrimary,
+      })),
+    );
+  }
+  if (data.contacts.length > 0) {
+    await tx.insert(customerContacts).values(
+      data.contacts.map((c) => ({
+        companyId,
+        customerId,
+        name: c.name,
+        role: c.role,
+        email: c.email,
+        phone: c.phone,
+      })),
+    );
+  }
+}
+
 export const drizzleCustomerRepository: CustomerRepository = {
-  async create(ctx: TenantContext, data: CreateCustomerInput): Promise<Customer> {
+  async create(ctx: TenantContext, data: NormalizedCustomer): Promise<Customer> {
     return withTenant(ctx.tenantId, async (tx) => {
       const [row] = await tx
         .insert(customers)
-        .values({ companyId: ctx.tenantId, ...toValues(data) })
+        .values({
+          companyId: ctx.tenantId,
+          type: data.type,
+          name: data.name,
+          document: data.document,
+          email: data.email,
+          phone: data.phone,
+          notes: data.notes,
+        })
         .returning();
-      return toDomain(row);
+      await writeChildren(tx, ctx.tenantId, row.id, data);
+      return (await loadCustomer(tx, row.id))!;
     });
   },
 
   async list(
     ctx: TenantContext,
     opts?: { search?: string },
-  ): Promise<Customer[]> {
+  ): Promise<CustomerListItem[]> {
     return withTenant(ctx.tenantId, async (tx) => {
       const search = opts?.search?.trim();
       const rows = await tx
-        .select()
+        .select({
+          id: customers.id,
+          type: customers.type,
+          name: customers.name,
+          document: customers.document,
+          email: customers.email,
+          phone: customers.phone,
+          primaryCity: customerAddresses.city,
+          primaryState: customerAddresses.state,
+        })
         .from(customers)
+        .leftJoin(
+          customerAddresses,
+          and(
+            eq(customerAddresses.customerId, customers.id),
+            eq(customerAddresses.isPrimary, true),
+          ),
+        )
         .where(
           search
             ? or(
@@ -84,38 +175,57 @@ export const drizzleCustomerRepository: CustomerRepository = {
         )
         .orderBy(desc(customers.createdAt))
         .limit(200);
-      return rows.map(toDomain);
+
+      return rows.map((r) => ({
+        id: r.id,
+        type: r.type as CustomerType,
+        name: r.name,
+        document: r.document,
+        email: r.email,
+        phone: r.phone,
+        primaryCity: r.primaryCity,
+        primaryState: r.primaryState,
+      }));
     });
   },
 
   async getById(ctx: TenantContext, id: string): Promise<Customer | null> {
-    return withTenant(ctx.tenantId, async (tx) => {
-      const [row] = await tx
-        .select()
-        .from(customers)
-        .where(eq(customers.id, id))
-        .limit(1);
-      return row ? toDomain(row) : null;
-    });
+    return withTenant(ctx.tenantId, async (tx) => loadCustomer(tx, id));
   },
 
   async update(
     ctx: TenantContext,
     id: string,
-    data: CreateCustomerInput,
+    data: NormalizedCustomer,
   ): Promise<Customer | null> {
     return withTenant(ctx.tenantId, async (tx) => {
       const [row] = await tx
         .update(customers)
-        .set({ ...toValues(data), updatedAt: new Date() })
+        .set({
+          type: data.type,
+          name: data.name,
+          document: data.document,
+          email: data.email,
+          phone: data.phone,
+          notes: data.notes,
+          updatedAt: new Date(),
+        })
         .where(eq(customers.id, id))
         .returning();
-      return row ? toDomain(row) : null;
+      if (!row) return null;
+
+      // Substitui o conjunto de endereços e contatos.
+      await tx.delete(customerAddresses).where(eq(customerAddresses.customerId, id));
+      await tx.delete(customerContacts).where(eq(customerContacts.customerId, id));
+      await writeChildren(tx, ctx.tenantId, id, data);
+
+      return loadCustomer(tx, id);
     });
   },
 
   async delete(ctx: TenantContext, id: string): Promise<void> {
     await withTenant(ctx.tenantId, async (tx) => {
+      // Endereços/contatos somem por ON DELETE CASCADE.
       await tx.delete(customers).where(eq(customers.id, id));
     });
   },

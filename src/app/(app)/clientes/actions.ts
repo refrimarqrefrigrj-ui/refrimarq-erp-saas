@@ -8,9 +8,23 @@ import { createCustomer } from "@/modules/customers/application/create-customer"
 import { updateCustomer } from "@/modules/customers/application/update-customer";
 import { deleteCustomer } from "@/modules/customers/application/delete-customer";
 import { drizzleCustomerRepository } from "@/modules/customers/infrastructure/drizzle-customer-repository";
-import type { CustomerType } from "@/modules/customers/domain/customer";
+import type {
+  AddressInput,
+  ContactInput,
+  CustomerType,
+} from "@/modules/customers/domain/customer";
 
 export type CustomerFormState = { error: string } | undefined;
+
+function parseJsonArray<T>(formData: FormData, key: string): T[] {
+  try {
+    const raw = formData.get(key);
+    const parsed = raw ? JSON.parse(String(raw)) : [];
+    return Array.isArray(parsed) ? (parsed as T[]) : [];
+  } catch {
+    return [];
+  }
+}
 
 function readInput(formData: FormData) {
   return {
@@ -19,14 +33,9 @@ function readInput(formData: FormData) {
     document: String(formData.get("document") ?? ""),
     email: String(formData.get("email") ?? ""),
     phone: String(formData.get("phone") ?? ""),
-    zipCode: String(formData.get("zipCode") ?? ""),
-    street: String(formData.get("street") ?? ""),
-    number: String(formData.get("number") ?? ""),
-    complement: String(formData.get("complement") ?? ""),
-    neighborhood: String(formData.get("neighborhood") ?? ""),
-    city: String(formData.get("city") ?? ""),
-    state: String(formData.get("state") ?? ""),
     notes: String(formData.get("notes") ?? ""),
+    addresses: parseJsonArray<AddressInput>(formData, "addresses"),
+    contacts: parseJsonArray<ContactInput>(formData, "contacts"),
   };
 }
 

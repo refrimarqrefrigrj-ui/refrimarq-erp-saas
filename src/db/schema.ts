@@ -11,10 +11,7 @@ import {
  * partir daqui. Ver docs/ARCHITECTURE.md → Multi-tenancy.
  */
 
-/**
- * Empresa cliente do SaaS = TENANT.
- * Criada no cadastro; o usuário que a cria é o dono (role "admin").
- */
+/** Empresa cliente do SaaS = TENANT. */
 export const companies = pgTable("companies", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
@@ -26,10 +23,7 @@ export const companies = pgTable("companies", {
     .defaultNow(),
 });
 
-/**
- * Usuário do sistema. Pertence a uma empresa (tenant). A senha é guardada
- * apenas como hash (bcrypt) — nunca em texto puro.
- */
+/** Usuário do sistema. Pertence a uma empresa (tenant). */
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
   companyId: uuid("company_id")
@@ -47,9 +41,7 @@ export const users = pgTable("users", {
     .defaultNow(),
 });
 
-/**
- * Filial de uma empresa.
- */
+/** Filial de uma empresa. */
 export const branches = pgTable("branches", {
   id: uuid("id").primaryKey().defaultRandom(),
   companyId: uuid("company_id")
@@ -66,25 +58,38 @@ export const branches = pgTable("branches", {
 });
 
 /**
- * Cliente da empresa (pessoa física ou jurídica). Tabela de dados de tenant:
- * carrega `company_id` e é protegida por Row Level Security (ver migration
- * de RLS). O endereço principal é inline; múltiplos endereços entram depois.
+ * Cliente da empresa (pessoa física ou jurídica). Dados de tenant (RLS).
+ * Endereços e contatos ficam em tabelas próprias (1..N).
  */
 export const customers = pgTable("customers", {
   id: uuid("id").primaryKey().defaultRandom(),
-  // tenant_id
   companyId: uuid("company_id")
     .notNull()
     .references(() => companies.id, { onDelete: "cascade" }),
-  // "pf" (pessoa física) ou "pj" (pessoa jurídica)
-  type: text("type").notNull(),
-  // Nome (PF) ou razão social (PJ)
+  type: text("type").notNull(), // "pf" | "pj"
   name: text("name").notNull(),
-  // CPF ou CNPJ, apenas dígitos (opcional)
   document: text("document"),
   email: text("email"),
   phone: text("phone"),
-  // Endereço principal (inline, opcional)
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+/** Endereço de um cliente (um cliente pode ter vários). */
+export const customerAddresses = pgTable("customer_addresses", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  companyId: uuid("company_id")
+    .notNull()
+    .references(() => companies.id, { onDelete: "cascade" }),
+  customerId: uuid("customer_id")
+    .notNull()
+    .references(() => customers.id, { onDelete: "cascade" }),
+  label: text("label"), // ex.: "Residencial", "Comercial", "Obra"
   zipCode: text("zip_code"),
   street: text("street"),
   number: text("number"),
@@ -92,11 +97,26 @@ export const customers = pgTable("customers", {
   neighborhood: text("neighborhood"),
   city: text("city"),
   state: text("state"),
-  notes: text("notes"),
+  isPrimary: boolean("is_primary").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
+});
+
+/** Contato de um cliente (um cliente pode ter vários). */
+export const customerContacts = pgTable("customer_contacts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  companyId: uuid("company_id")
+    .notNull()
+    .references(() => companies.id, { onDelete: "cascade" }),
+  customerId: uuid("customer_id")
+    .notNull()
+    .references(() => customers.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  role: text("role"), // ex.: "Gerente", "Financeiro", "Zelador"
+  email: text("email"),
+  phone: text("phone"),
+  createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
 });
@@ -110,3 +130,7 @@ export type Branch = typeof branches.$inferSelect;
 export type NewBranch = typeof branches.$inferInsert;
 export type CustomerRow = typeof customers.$inferSelect;
 export type NewCustomerRow = typeof customers.$inferInsert;
+export type CustomerAddressRow = typeof customerAddresses.$inferSelect;
+export type NewCustomerAddressRow = typeof customerAddresses.$inferInsert;
+export type CustomerContactRow = typeof customerContacts.$inferSelect;
+export type NewCustomerContactRow = typeof customerContacts.$inferInsert;

@@ -124,7 +124,9 @@ export default async function ClientesPage({
                     {c.email || c.phone || "—"}
                   </TableCell>
                   <TableCell className="text-muted-foreground">
-                    {c.city ? `${c.city}${c.state ? `/${c.state}` : ""}` : "—"}
+                    {c.primaryCity
+                      ? `${c.primaryCity}${c.primaryState ? `/${c.primaryState}` : ""}`
+                      : "—"}
                   </TableCell>
                 </TableRow>
               ))}
