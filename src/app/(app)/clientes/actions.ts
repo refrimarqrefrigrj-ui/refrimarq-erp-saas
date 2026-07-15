@@ -5,22 +5,16 @@ import { redirect } from "next/navigation";
 
 import { requireTenantContext } from "@/lib/auth/tenant";
 import { createCustomer } from "@/modules/customers/application/create-customer";
+import { updateCustomer } from "@/modules/customers/application/update-customer";
+import { deleteCustomer } from "@/modules/customers/application/delete-customer";
 import { drizzleCustomerRepository } from "@/modules/customers/infrastructure/drizzle-customer-repository";
 import type { CustomerType } from "@/modules/customers/domain/customer";
 
 export type CustomerFormState = { error: string } | undefined;
 
-/** Server action: cadastra um cliente e volta para a listagem. */
-export async function createCustomerAction(
-  _prev: CustomerFormState,
-  formData: FormData,
-): Promise<CustomerFormState> {
-  const ctx = await requireTenantContext();
-
-  const type = (String(formData.get("type") ?? "pf") as CustomerType) || "pf";
-
-  const result = await createCustomer(drizzleCustomerRepository, ctx, {
-    type,
+function readInput(formData: FormData) {
+  return {
+    type: (String(formData.get("type") ?? "pf") as CustomerType) || "pf",
     name: String(formData.get("name") ?? ""),
     document: String(formData.get("document") ?? ""),
     email: String(formData.get("email") ?? ""),
@@ -33,11 +27,50 @@ export async function createCustomerAction(
     city: String(formData.get("city") ?? ""),
     state: String(formData.get("state") ?? ""),
     notes: String(formData.get("notes") ?? ""),
-  });
+  };
+}
 
-  if (!result.ok) {
-    return { error: result.error.message };
-  }
+/** Cadastra um cliente e volta para a listagem. */
+export async function createCustomerAction(
+  _prev: CustomerFormState,
+  formData: FormData,
+): Promise<CustomerFormState> {
+  const ctx = await requireTenantContext();
+  const result = await createCustomer(
+    drizzleCustomerRepository,
+    ctx,
+    readInput(formData),
+  );
+  if (!result.ok) return { error: result.error.message };
+
+  revalidatePath("/clientes");
+  redirect("/clientes");
+}
+
+/** Atualiza um cliente e volta para a listagem. */
+export async function updateCustomerAction(
+  _prev: CustomerFormState,
+  formData: FormData,
+): Promise<CustomerFormState> {
+  const ctx = await requireTenantContext();
+  const id = String(formData.get("id") ?? "");
+  const result = await updateCustomer(
+    drizzleCustomerRepository,
+    ctx,
+    id,
+    readInput(formData),
+  );
+  if (!result.ok) return { error: result.error.message };
+
+  revalidatePath("/clientes");
+  redirect("/clientes");
+}
+
+/** Exclui um cliente e volta para a listagem. */
+export async function deleteCustomerAction(formData: FormData): Promise<void> {
+  const ctx = await requireTenantContext();
+  const id = String(formData.get("id") ?? "");
+  await deleteCustomer(drizzleCustomerRepository, ctx, id);
 
   revalidatePath("/clientes");
   redirect("/clientes");

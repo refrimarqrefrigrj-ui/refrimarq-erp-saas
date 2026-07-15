@@ -4,23 +4,35 @@ import { useActionState, useState } from "react";
 import Link from "next/link";
 
 import { cn } from "@/lib/utils";
+import { maskCep, maskCpfCnpj, maskPhone } from "@/lib/masks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { createCustomerAction } from "./actions";
+import type { Customer, CustomerType } from "@/modules/customers/domain/customer";
+import {
+  createCustomerAction,
+  updateCustomerAction,
+  type CustomerFormState,
+} from "./actions";
 
-type CustomerType = "pf" | "pj";
+export function CustomerForm({ initial }: { initial?: Customer }) {
+  const isEdit = Boolean(initial);
+  const action = isEdit ? updateCustomerAction : createCustomerAction;
 
-export function CustomerForm() {
-  const [state, action, pending] = useActionState(
-    createCustomerAction,
-    undefined,
-  );
-  const [type, setType] = useState<CustomerType>("pf");
+  const [state, formAction, pending] = useActionState<
+    CustomerFormState,
+    FormData
+  >(action, undefined);
+
+  const [type, setType] = useState<CustomerType>(initial?.type ?? "pf");
+  const [document, setDocument] = useState(maskCpfCnpj(initial?.document ?? ""));
+  const [phone, setPhone] = useState(maskPhone(initial?.phone ?? ""));
+  const [zipCode, setZipCode] = useState(maskCep(initial?.zipCode ?? ""));
 
   return (
-    <form action={action} className="space-y-6">
+    <form action={formAction} className="space-y-6">
+      {isEdit ? <input type="hidden" name="id" value={initial!.id} /> : null}
       <input type="hidden" name="type" value={type} />
 
       {/* Seletor PF / PJ */}
@@ -53,7 +65,7 @@ export function CustomerForm() {
           <Label htmlFor="name">
             {type === "pf" ? "Nome completo" : "Razão social"}
           </Label>
-          <Input id="name" name="name" required />
+          <Input id="name" name="name" defaultValue={initial?.name ?? ""} required />
         </div>
         <div className="space-y-2">
           <Label htmlFor="document">{type === "pf" ? "CPF" : "CNPJ"}</Label>
@@ -61,16 +73,30 @@ export function CustomerForm() {
             id="document"
             name="document"
             inputMode="numeric"
+            value={document}
+            onChange={(e) => setDocument(maskCpfCnpj(e.target.value))}
             placeholder={type === "pf" ? "000.000.000-00" : "00.000.000/0000-00"}
           />
         </div>
         <div className="space-y-2">
           <Label htmlFor="phone">Telefone</Label>
-          <Input id="phone" name="phone" placeholder="(21) 90000-0000" />
+          <Input
+            id="phone"
+            name="phone"
+            inputMode="numeric"
+            value={phone}
+            onChange={(e) => setPhone(maskPhone(e.target.value))}
+            placeholder="(21) 90000-0000"
+          />
         </div>
         <div className="space-y-2 sm:col-span-2">
           <Label htmlFor="email">E-mail</Label>
-          <Input id="email" name="email" type="email" />
+          <Input
+            id="email"
+            name="email"
+            type="email"
+            defaultValue={initial?.email ?? ""}
+          />
         </div>
       </div>
 
@@ -80,31 +106,51 @@ export function CustomerForm() {
         <div className="grid gap-4 sm:grid-cols-6">
           <div className="space-y-2 sm:col-span-2">
             <Label htmlFor="zipCode">CEP</Label>
-            <Input id="zipCode" name="zipCode" inputMode="numeric" />
+            <Input
+              id="zipCode"
+              name="zipCode"
+              inputMode="numeric"
+              value={zipCode}
+              onChange={(e) => setZipCode(maskCep(e.target.value))}
+            />
           </div>
           <div className="space-y-2 sm:col-span-3">
             <Label htmlFor="street">Rua</Label>
-            <Input id="street" name="street" />
+            <Input id="street" name="street" defaultValue={initial?.street ?? ""} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="number">Número</Label>
-            <Input id="number" name="number" />
+            <Input id="number" name="number" defaultValue={initial?.number ?? ""} />
           </div>
           <div className="space-y-2 sm:col-span-2">
             <Label htmlFor="complement">Complemento</Label>
-            <Input id="complement" name="complement" />
+            <Input
+              id="complement"
+              name="complement"
+              defaultValue={initial?.complement ?? ""}
+            />
           </div>
           <div className="space-y-2 sm:col-span-2">
             <Label htmlFor="neighborhood">Bairro</Label>
-            <Input id="neighborhood" name="neighborhood" />
+            <Input
+              id="neighborhood"
+              name="neighborhood"
+              defaultValue={initial?.neighborhood ?? ""}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="city">Cidade</Label>
-            <Input id="city" name="city" />
+            <Input id="city" name="city" defaultValue={initial?.city ?? ""} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="state">UF</Label>
-            <Input id="state" name="state" maxLength={2} placeholder="RJ" />
+            <Input
+              id="state"
+              name="state"
+              maxLength={2}
+              placeholder="RJ"
+              defaultValue={initial?.state ?? ""}
+            />
           </div>
         </div>
       </div>
@@ -112,7 +158,12 @@ export function CustomerForm() {
       {/* Observações */}
       <div className="space-y-2">
         <Label htmlFor="notes">Observações</Label>
-        <Textarea id="notes" name="notes" rows={3} />
+        <Textarea
+          id="notes"
+          name="notes"
+          rows={3}
+          defaultValue={initial?.notes ?? ""}
+        />
       </div>
 
       {state?.error ? (
@@ -121,7 +172,11 @@ export function CustomerForm() {
 
       <div className="flex gap-2">
         <Button type="submit" disabled={pending}>
-          {pending ? "Salvando..." : "Salvar cliente"}
+          {pending
+            ? "Salvando..."
+            : isEdit
+              ? "Salvar alterações"
+              : "Salvar cliente"}
         </Button>
         <Button variant="outline" render={<Link href="/clientes" />}>
           Cancelar

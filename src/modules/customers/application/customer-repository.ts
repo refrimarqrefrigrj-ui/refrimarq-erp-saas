@@ -9,4 +9,11 @@ import type { CreateCustomerInput, Customer } from "../domain/customer";
 export interface CustomerRepository {
   create(ctx: TenantContext, data: CreateCustomerInput): Promise<Customer>;
   list(ctx: TenantContext, opts?: { search?: string }): Promise<Customer[]>;
+  getById(ctx: TenantContext, id: string): Promise<Customer | null>;
+  update(
+    ctx: TenantContext,
+    id: string,
+    data: CreateCustomerInput,
+  ): Promise<Customer | null>;
+  delete(ctx: TenantContext, id: string): Promise<void>;
 }

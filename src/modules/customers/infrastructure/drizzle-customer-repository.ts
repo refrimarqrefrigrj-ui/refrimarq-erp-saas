@@ -1,4 +1,4 @@
-import { desc, ilike, or } from "drizzle-orm";
+import { desc, eq, ilike, or } from "drizzle-orm";
 
 import { customers, type CustomerRow } from "@/db/schema";
 import { withTenant } from "@/db/tenant";
@@ -27,34 +27,39 @@ function toDomain(row: CustomerRow): Customer {
   };
 }
 
+/** Campos gravados a partir da entrada validada (create/update). */
+function toValues(data: CreateCustomerInput) {
+  return {
+    type: data.type,
+    name: data.name,
+    document: data.document ?? null,
+    email: data.email ?? null,
+    phone: data.phone ?? null,
+    zipCode: data.zipCode ?? null,
+    street: data.street ?? null,
+    number: data.number ?? null,
+    complement: data.complement ?? null,
+    neighborhood: data.neighborhood ?? null,
+    city: data.city ?? null,
+    state: data.state ?? null,
+    notes: data.notes ?? null,
+  };
+}
+
 /**
  * Implementação Drizzle do CustomerRepository.
  *
- * Todo acesso passa por `withTenant`, que define a empresa ativa na sessão do
- * Postgres — o RLS então filtra/valida automaticamente por tenant. Ou seja: o
- * isolamento entre empresas é garantido pelo banco, não só pelo código.
+ * Todo acesso passa por `withTenant`, que assume o papel restrito e define a
+ * empresa ativa — o RLS então garante o isolamento por tenant no banco. As
+ * operações por id (buscar/editar/excluir) também ficam automaticamente
+ * restritas à empresa da sessão.
  */
 export const drizzleCustomerRepository: CustomerRepository = {
   async create(ctx: TenantContext, data: CreateCustomerInput): Promise<Customer> {
     return withTenant(ctx.tenantId, async (tx) => {
       const [row] = await tx
         .insert(customers)
-        .values({
-          companyId: ctx.tenantId,
-          type: data.type,
-          name: data.name,
-          document: data.document ?? null,
-          email: data.email ?? null,
-          phone: data.phone ?? null,
-          zipCode: data.zipCode ?? null,
-          street: data.street ?? null,
-          number: data.number ?? null,
-          complement: data.complement ?? null,
-          neighborhood: data.neighborhood ?? null,
-          city: data.city ?? null,
-          state: data.state ?? null,
-          notes: data.notes ?? null,
-        })
+        .values({ companyId: ctx.tenantId, ...toValues(data) })
         .returning();
       return toDomain(row);
     });
@@ -80,6 +85,38 @@ export const drizzleCustomerRepository: CustomerRepository = {
         .orderBy(desc(customers.createdAt))
         .limit(200);
       return rows.map(toDomain);
+    });
+  },
+
+  async getById(ctx: TenantContext, id: string): Promise<Customer | null> {
+    return withTenant(ctx.tenantId, async (tx) => {
+      const [row] = await tx
+        .select()
+        .from(customers)
+        .where(eq(customers.id, id))
+        .limit(1);
+      return row ? toDomain(row) : null;
+    });
+  },
+
+  async update(
+    ctx: TenantContext,
+    id: string,
+    data: CreateCustomerInput,
+  ): Promise<Customer | null> {
+    return withTenant(ctx.tenantId, async (tx) => {
+      const [row] = await tx
+        .update(customers)
+        .set({ ...toValues(data), updatedAt: new Date() })
+        .where(eq(customers.id, id))
+        .returning();
+      return row ? toDomain(row) : null;
+    });
+  },
+
+  async delete(ctx: TenantContext, id: string): Promise<void> {
+    await withTenant(ctx.tenantId, async (tx) => {
+      await tx.delete(customers).where(eq(customers.id, id));
     });
   },
 };

@@ -106,7 +106,12 @@ export default async function ClientesPage({
                 <TableRow key={c.id}>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <span className="font-medium">{c.name}</span>
+                      <Link
+                        href={`/clientes/${c.id}`}
+                        className="font-medium underline-offset-4 hover:underline"
+                      >
+                        {c.name}
+                      </Link>
                       <Badge variant="secondary" className="uppercase">
                         {c.type}
                       </Badge>
