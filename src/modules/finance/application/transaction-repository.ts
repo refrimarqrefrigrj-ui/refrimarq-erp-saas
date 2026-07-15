@@ -11,6 +11,9 @@ export interface FinanceSummary {
   receivableOverdue: number;
   payablePending: number;
   payableOverdue: number;
+  // Faturamento = contas a receber JÁ recebidas (quitadas).
+  receivedToday: number;
+  receivedMonth: number;
 }
 
 /** Porta de persistência de lançamentos. Operações restritas ao tenant. */

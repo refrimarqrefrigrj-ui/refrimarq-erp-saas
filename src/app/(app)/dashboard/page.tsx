@@ -1,6 +1,17 @@
-import { auth } from "@/auth";
-import { Wallet, ClipboardList, FileText, FileCheck2 } from "lucide-react";
+import Link from "next/link";
+import {
+  Wallet,
+  CalendarClock,
+  TrendingUp,
+  TrendingDown,
+} from "lucide-react";
 
+import { auth } from "@/auth";
+import { requireTenantContext } from "@/lib/auth/tenant";
+import { getFinanceSummary } from "@/modules/finance/application/transaction-actions";
+import { drizzleTransactionRepository } from "@/modules/finance/infrastructure/drizzle-transaction-repository";
+import { formatBRLFromCents } from "@/lib/masks";
+import { cn } from "@/lib/utils";
 import {
   Card,
   CardContent,
@@ -9,22 +20,41 @@ import {
 } from "@/components/ui/card";
 
 /**
- * Dashboard — visão geral do negócio.
- *
- * Os indicadores (KPIs) estão zerados por enquanto: passam a mostrar dados
- * reais conforme os módulos forem entrando (Financeiro, Ordens de Serviço,
- * Orçamentos, Contratos). A casca (menu/topo) vem do layout do grupo (app).
+ * Dashboard — visão geral do negócio, com os números reais do Financeiro.
+ * Faturamento = contas a receber já recebidas (quitadas).
  */
-const kpis = [
-  { label: "Faturamento do mês", value: "R$ 0,00", icon: Wallet },
-  { label: "Ordens de serviço hoje", value: "0", icon: ClipboardList },
-  { label: "Orçamentos pendentes", value: "0", icon: FileText },
-  { label: "Contratos ativos", value: "0", icon: FileCheck2 },
-];
-
 export default async function DashboardPage() {
   const session = await auth();
   const firstName = session?.user?.name?.split(/\s+/)[0] ?? "por aqui";
+
+  const ctx = await requireTenantContext();
+  const summary = await getFinanceSummary(drizzleTransactionRepository, ctx);
+
+  const kpis = [
+    {
+      label: "Faturamento do mês",
+      value: formatBRLFromCents(summary.receivedMonth),
+      icon: Wallet,
+      accent: "text-emerald-600 dark:text-emerald-400",
+    },
+    {
+      label: "Faturamento do dia",
+      value: formatBRLFromCents(summary.receivedToday),
+      icon: CalendarClock,
+      accent: "text-emerald-600 dark:text-emerald-400",
+    },
+    {
+      label: "A receber",
+      value: formatBRLFromCents(summary.receivablePending),
+      icon: TrendingUp,
+    },
+    {
+      label: "A pagar",
+      value: formatBRLFromCents(summary.payablePending),
+      icon: TrendingDown,
+      accent: "text-destructive",
+    },
+  ];
 
   return (
     <div className="mx-auto w-full max-w-6xl space-y-8 p-6">
@@ -33,8 +63,7 @@ export default async function DashboardPage() {
           Bem-vindo, {firstName}! 👋
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Visão geral da sua operação. Os números ganham vida conforme você usa
-          o sistema.
+          Visão geral da sua operação.
         </p>
       </div>
 
@@ -50,7 +79,9 @@ export default async function DashboardPage() {
                 <Icon className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-semibold">{kpi.value}</div>
+                <div className={cn("text-2xl font-semibold", kpi.accent)}>
+                  {kpi.value}
+                </div>
               </CardContent>
             </Card>
           );
@@ -59,11 +90,18 @@ export default async function DashboardPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Primeiros passos</CardTitle>
+          <CardTitle>Faturamento</CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground">
-          Comece cadastrando seus <strong>Clientes</strong> no menu ao lado. É a
-          base para orçamentos, ordens de serviço e contratos.
+          O <strong>faturamento</strong> soma as contas a receber que já foram
+          recebidas (baixadas). Dê baixa nos recebimentos em{" "}
+          <Link
+            href="/financeiro"
+            className="font-medium text-foreground underline-offset-4 hover:underline"
+          >
+            Financeiro
+          </Link>{" "}
+          para que apareçam aqui no dia e no mês.
         </CardContent>
       </Card>
     </div>

@@ -150,31 +150,32 @@ export const drizzleTransactionRepository: TransactionRepository = {
   async summary(ctx: TenantContext): Promise<FinanceSummary> {
     return withTenant(ctx.tenantId, async (tx) => {
       const ref = today();
-      const rows = await tx
-        .select({
-          direction: financeTransactions.direction,
-          pending: sql<string>`coalesce(sum(${financeTransactions.amountCents}) filter (where ${financeTransactions.status} = 'pending'), 0)`,
-          overdue: sql<string>`coalesce(sum(${financeTransactions.amountCents}) filter (where ${financeTransactions.status} = 'pending' and ${financeTransactions.dueDate} < ${ref}), 0)`,
-        })
-        .from(financeTransactions)
-        .groupBy(financeTransactions.direction);
+      const monthStart = `${ref.slice(0, 7)}-01`;
+      const amount = financeTransactions.amountCents;
+      const status = financeTransactions.status;
+      const dir = financeTransactions.direction;
+      const due = financeTransactions.dueDate;
+      const paid = financeTransactions.paidDate;
 
-      const summary: FinanceSummary = {
-        receivablePending: 0,
-        receivableOverdue: 0,
-        payablePending: 0,
-        payableOverdue: 0,
+      const [r] = await tx
+        .select({
+          recvPending: sql<string>`coalesce(sum(${amount}) filter (where ${status}='pending' and ${dir}='receivable'), 0)`,
+          recvOverdue: sql<string>`coalesce(sum(${amount}) filter (where ${status}='pending' and ${dir}='receivable' and ${due} < ${ref}), 0)`,
+          payPending: sql<string>`coalesce(sum(${amount}) filter (where ${status}='pending' and ${dir}='payable'), 0)`,
+          payOverdue: sql<string>`coalesce(sum(${amount}) filter (where ${status}='pending' and ${dir}='payable' and ${due} < ${ref}), 0)`,
+          receivedToday: sql<string>`coalesce(sum(${amount}) filter (where ${status}='paid' and ${dir}='receivable' and ${paid} = ${ref}), 0)`,
+          receivedMonth: sql<string>`coalesce(sum(${amount}) filter (where ${status}='paid' and ${dir}='receivable' and ${paid} >= ${monthStart}), 0)`,
+        })
+        .from(financeTransactions);
+
+      return {
+        receivablePending: Number(r.recvPending),
+        receivableOverdue: Number(r.recvOverdue),
+        payablePending: Number(r.payPending),
+        payableOverdue: Number(r.payOverdue),
+        receivedToday: Number(r.receivedToday),
+        receivedMonth: Number(r.receivedMonth),
       };
-      for (const r of rows) {
-        if (r.direction === "receivable") {
-          summary.receivablePending = Number(r.pending);
-          summary.receivableOverdue = Number(r.overdue);
-        } else if (r.direction === "payable") {
-          summary.payablePending = Number(r.pending);
-          summary.payableOverdue = Number(r.overdue);
-        }
-      }
-      return summary;
     });
   },
 };

@@ -6,6 +6,8 @@ import {
   Scale,
   AlertTriangle,
   Check,
+  Wallet,
+  CalendarClock,
 } from "lucide-react";
 
 import { requireTenantContext } from "@/lib/auth/tenant";
@@ -56,6 +58,18 @@ export default async function FinanceiroPage({
   const overdue = summary.receivableOverdue + summary.payableOverdue;
 
   const kpis = [
+    {
+      label: "Faturamento do mês",
+      value: formatBRLFromCents(summary.receivedMonth),
+      icon: Wallet,
+      accent: "text-emerald-600 dark:text-emerald-400",
+    },
+    {
+      label: "Faturamento do dia",
+      value: formatBRLFromCents(summary.receivedToday),
+      icon: CalendarClock,
+      accent: "text-emerald-600 dark:text-emerald-400",
+    },
     {
       label: "A receber",
       value: formatBRLFromCents(summary.receivablePending),
@@ -110,7 +124,7 @@ export default async function FinanceiroPage({
       </div>
 
       {/* Dashboard financeiro */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {kpis.map((kpi) => {
           const Icon = kpi.icon;
           return (
