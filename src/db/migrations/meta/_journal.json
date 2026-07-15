@@ -50,6 +50,20 @@
       "when": 1784083735093,
       "tag": "20260715024855_customer_addresses_contacts",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1784084567720,
+      "tag": "20260715030247_equipment",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1784084571631,
+      "tag": "20260715030251_equipment_rls",
+      "breakpoints": true
     }
   ]
 }

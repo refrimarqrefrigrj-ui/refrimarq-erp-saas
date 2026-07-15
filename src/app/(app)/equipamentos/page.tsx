@@ -1,10 +1,9 @@
 import Link from "next/link";
-import { Plus, Search, Users } from "lucide-react";
+import { Plus, Search, Wind } from "lucide-react";
 
 import { requireTenantContext } from "@/lib/auth/tenant";
-import { listCustomers } from "@/modules/customers/application/list-customers";
-import { drizzleCustomerRepository } from "@/modules/customers/infrastructure/drizzle-customer-repository";
-import { onlyDigits } from "@/modules/customers/domain/document";
+import { listEquipment } from "@/modules/equipment/application/list-equipment";
+import { drizzleEquipmentRepository } from "@/modules/equipment/infrastructure/drizzle-equipment-repository";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -17,26 +16,23 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-/** Formata CPF/CNPJ para exibição. */
-function formatDocument(value: string | null): string {
-  const d = onlyDigits(value);
-  if (d.length === 11) {
-    return d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
-  }
-  if (d.length === 14) {
-    return d.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5");
-  }
-  return value ?? "—";
-}
+const KIND_LABELS: Record<string, string> = {
+  split: "Split",
+  janela: "Janela",
+  cassete: "Cassete",
+  "piso-teto": "Piso-teto",
+  "multi-split": "Multi-split",
+  outro: "Outro",
+};
 
-export default async function ClientesPage({
+export default async function EquipamentosPage({
   searchParams,
 }: {
   searchParams: Promise<{ q?: string }>;
 }) {
   const { q } = await searchParams;
   const ctx = await requireTenantContext();
-  const customers = await listCustomers(drizzleCustomerRepository, ctx, {
+  const items = await listEquipment(drizzleEquipmentRepository, ctx, {
     search: q,
   });
 
@@ -44,24 +40,24 @@ export default async function ClientesPage({
     <div className="mx-auto w-full max-w-6xl space-y-6 p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Clientes</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Equipamentos</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Cadastro de clientes (pessoa física e jurídica) da sua empresa.
+            Aparelhos de ar-condicionado instalados nos seus clientes.
           </p>
         </div>
-        <Button nativeButton={false} render={<Link href="/clientes/novo" />}>
+        <Button nativeButton={false} render={<Link href="/equipamentos/novo" />}>
           <Plus className="h-4 w-4" />
-          Novo cliente
+          Novo equipamento
         </Button>
       </div>
 
-      <form className="flex gap-2" action="/clientes">
+      <form className="flex gap-2" action="/equipamentos">
         <div className="relative flex-1 sm:max-w-xs">
           <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             name="q"
             defaultValue={q ?? ""}
-            placeholder="Buscar por nome ou documento"
+            placeholder="Buscar por marca, modelo ou nº de série"
             className="pl-9"
           />
         </div>
@@ -70,27 +66,27 @@ export default async function ClientesPage({
         </Button>
       </form>
 
-      {customers.length === 0 ? (
+      {items.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed py-16 text-center">
           <span className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-            <Users className="h-6 w-6 text-muted-foreground" />
+            <Wind className="h-6 w-6 text-muted-foreground" />
           </span>
           <h2 className="mt-4 text-base font-medium">
-            {q ? "Nenhum cliente encontrado" : "Nenhum cliente ainda"}
+            {q ? "Nenhum equipamento encontrado" : "Nenhum equipamento ainda"}
           </h2>
           <p className="mt-1 max-w-sm text-sm text-muted-foreground">
             {q
               ? "Tente outro termo de busca."
-              : "Cadastre seu primeiro cliente para começar a criar orçamentos e ordens de serviço."}
+              : "Cadastre os aparelhos dos seus clientes para controlar manutenções e garantias."}
           </p>
           {!q ? (
             <Button
               nativeButton={false}
               className="mt-5"
-              render={<Link href="/clientes/novo" />}
+              render={<Link href="/equipamentos/novo" />}
             >
               <Plus className="h-4 w-4" />
-              Cadastrar primeiro cliente
+              Cadastrar equipamento
             </Button>
           ) : null}
         </div>
@@ -99,38 +95,42 @@ export default async function ClientesPage({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>Documento</TableHead>
-                <TableHead>Contato</TableHead>
-                <TableHead>Cidade</TableHead>
+                <TableHead>Equipamento</TableHead>
+                <TableHead>Cliente</TableHead>
+                <TableHead>Tipo</TableHead>
+                <TableHead>BTUs</TableHead>
+                <TableHead>Ambiente</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {customers.map((c) => (
-                <TableRow key={c.id}>
+              {items.map((e) => (
+                <TableRow key={e.id}>
                   <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Link
-                        href={`/clientes/${c.id}`}
-                        className="font-medium underline-offset-4 hover:underline"
-                      >
-                        {c.name}
-                      </Link>
-                      <Badge variant="secondary" className="uppercase">
-                        {c.type}
+                    <Link
+                      href={`/equipamentos/${e.id}`}
+                      className="font-medium underline-offset-4 hover:underline"
+                    >
+                      {[e.brand, e.model].filter(Boolean).join(" ") ||
+                        "Equipamento"}
+                    </Link>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {e.customerName}
+                  </TableCell>
+                  <TableCell>
+                    {e.kind ? (
+                      <Badge variant="secondary">
+                        {KIND_LABELS[e.kind] ?? e.kind}
                       </Badge>
-                    </div>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
                   </TableCell>
                   <TableCell className="text-muted-foreground">
-                    {formatDocument(c.document)}
+                    {e.btus ? e.btus.toLocaleString("pt-BR") : "—"}
                   </TableCell>
                   <TableCell className="text-muted-foreground">
-                    {c.email || c.phone || "—"}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {c.primaryCity
-                      ? `${c.primaryCity}${c.primaryState ? `/${c.primaryState}` : ""}`
-                      : "—"}
+                    {e.location || "—"}
                   </TableCell>
                 </TableRow>
               ))}

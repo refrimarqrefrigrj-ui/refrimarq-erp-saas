@@ -24,7 +24,7 @@ export type NavItem = {
 export const navItems: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Clientes", href: "/clientes", icon: Users },
-  { label: "Equipamentos", href: "/equipamentos", icon: Wind, disabled: true },
+  { label: "Equipamentos", href: "/equipamentos", icon: Wind },
   {
     label: "Ordens de Serviço",
     href: "/ordens",

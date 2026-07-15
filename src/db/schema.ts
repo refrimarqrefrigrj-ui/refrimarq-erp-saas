@@ -3,6 +3,8 @@ import {
   uuid,
   text,
   boolean,
+  integer,
+  date,
   timestamp,
 } from "drizzle-orm/pg-core";
 
@@ -121,6 +123,34 @@ export const customerContacts = pgTable("customer_contacts", {
     .defaultNow(),
 });
 
+/**
+ * Equipamento de ar-condicionado, vinculado a um cliente. Dados de tenant (RLS).
+ */
+export const equipment = pgTable("equipment", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  companyId: uuid("company_id")
+    .notNull()
+    .references(() => companies.id, { onDelete: "cascade" }),
+  customerId: uuid("customer_id")
+    .notNull()
+    .references(() => customers.id, { onDelete: "cascade" }),
+  brand: text("brand"), // marca
+  model: text("model"), // modelo
+  kind: text("kind"), // tipo: split, janela, cassete, piso-teto, multi-split
+  btus: integer("btus"), // capacidade
+  serialNumber: text("serial_number"), // número de série
+  location: text("location"), // ambiente onde está instalado
+  installedAt: date("installed_at", { mode: "string" }), // data de instalação
+  warrantyUntil: date("warranty_until", { mode: "string" }), // garantia até
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
 // Tipos inferidos para uso na aplicação (type-safe de ponta a ponta).
 export type Company = typeof companies.$inferSelect;
 export type NewCompany = typeof companies.$inferInsert;
@@ -134,3 +164,5 @@ export type CustomerAddressRow = typeof customerAddresses.$inferSelect;
 export type NewCustomerAddressRow = typeof customerAddresses.$inferInsert;
 export type CustomerContactRow = typeof customerContacts.$inferSelect;
 export type NewCustomerContactRow = typeof customerContacts.$inferInsert;
+export type EquipmentRow = typeof equipment.$inferSelect;
+export type NewEquipmentRow = typeof equipment.$inferInsert;

@@ -412,7 +412,11 @@ export function CustomerForm({ initial }: { initial?: Customer }) {
               ? "Salvar alterações"
               : "Salvar cliente"}
         </Button>
-        <Button variant="outline" render={<Link href="/clientes" />}>
+        <Button
+          variant="outline"
+          nativeButton={false}
+          render={<Link href="/clientes" />}
+        >
           Cancelar
         </Button>
       </div>
