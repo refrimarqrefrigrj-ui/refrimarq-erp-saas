@@ -5,6 +5,7 @@ import {
   ShoppingCart,
   Megaphone,
   Users,
+  HardHat,
   Wind,
   Building2,
   CalendarDays,
@@ -37,6 +38,7 @@ export const navItems: NavItem[] = [
   { label: "Campanhas", href: "/campanhas", icon: Megaphone },
 
   { label: "Clientes", href: "/clientes", icon: Users },
+  { label: "Colaboradores", href: "/colaboradores", icon: HardHat },
   { label: "Equipamentos", href: "/equipamentos", icon: Wind },
   { label: "Obras", href: "/obras", icon: Building2 },
 

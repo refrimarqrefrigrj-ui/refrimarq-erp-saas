@@ -92,6 +92,20 @@
       "when": 1784086522914,
       "tag": "20260715033522_finance_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1784164392821,
+      "tag": "20260716011312_collaborators",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1784164396792,
+      "tag": "20260716011316_collaborators_rls",
+      "breakpoints": true
     }
   ]
 }

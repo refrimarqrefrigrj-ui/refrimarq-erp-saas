@@ -215,6 +215,26 @@ export const financeTransactions = pgTable("finance_transactions", {
     .defaultNow(),
 });
 
+/**
+ * Colaborador (equipe/técnicos) da empresa. Dados de tenant (RLS).
+ * `active` controla se o técnico está ativo (disponível) ou não.
+ */
+export const collaborators = pgTable("collaborators", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  companyId: uuid("company_id")
+    .notNull()
+    .references(() => companies.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  role: text("role"), // função (ex.: Instalador, Auxiliar, Líder Operacional)
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
 // Tipos inferidos para uso na aplicação (type-safe de ponta a ponta).
 export type Company = typeof companies.$inferSelect;
 export type NewCompany = typeof companies.$inferInsert;
@@ -234,3 +254,5 @@ export type ObraRow = typeof obras.$inferSelect;
 export type NewObraRow = typeof obras.$inferInsert;
 export type FinanceTransactionRow = typeof financeTransactions.$inferSelect;
 export type NewFinanceTransactionRow = typeof financeTransactions.$inferInsert;
+export type CollaboratorRow = typeof collaborators.$inferSelect;
+export type NewCollaboratorRow = typeof collaborators.$inferInsert;
