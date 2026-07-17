@@ -43,12 +43,7 @@ export const navItems: NavItem[] = [
   { label: "Obras", href: "/obras", icon: Building2 },
 
   { label: "Calendário", href: "/calendario", icon: CalendarDays },
-  {
-    label: "Ordens de Serviço",
-    href: "/ordens",
-    icon: ClipboardList,
-    disabled: true,
-  },
+  { label: "Ordens de Serviço", href: "/ordens", icon: ClipboardList },
   { label: "Histórico de serviço", href: "/historico", icon: History },
 
   { label: "Orçamentos", href: "/orcamentos", icon: FileText, disabled: true },

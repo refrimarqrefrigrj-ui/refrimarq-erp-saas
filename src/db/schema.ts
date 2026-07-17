@@ -235,6 +235,44 @@ export const collaborators = pgTable("collaborators", {
     .defaultNow(),
 });
 
+/**
+ * Ordem de Serviço (OS) — atendimento ligado a um cliente, opcionalmente a um
+ * equipamento e a um técnico. Um único "motor" com TIPOS configuráveis
+ * (instalação, manutenção, limpeza, reparo). Dados de tenant (RLS).
+ * `number` é sequencial por empresa. Valor em centavos.
+ */
+export const serviceOrders = pgTable("service_orders", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  companyId: uuid("company_id")
+    .notNull()
+    .references(() => companies.id, { onDelete: "cascade" }),
+  number: integer("number").notNull(),
+  customerId: uuid("customer_id")
+    .notNull()
+    .references(() => customers.id, { onDelete: "cascade" }),
+  equipmentId: uuid("equipment_id").references(() => equipment.id, {
+    onDelete: "set null",
+  }),
+  collaboratorId: uuid("collaborator_id").references(() => collaborators.id, {
+    onDelete: "set null",
+  }),
+  // instalacao | manutencao | limpeza | reparo
+  type: text("type").notNull().default("manutencao"),
+  // aberta | agendada | em_andamento | concluida | cancelada
+  status: text("status").notNull().default("aberta"),
+  scheduledFor: date("scheduled_for", { mode: "string" }),
+  description: text("description"),
+  solution: text("solution"),
+  valueCents: bigint("value_cents", { mode: "number" }).notNull().default(0),
+  closedAt: timestamp("closed_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
 // Tipos inferidos para uso na aplicação (type-safe de ponta a ponta).
 export type Company = typeof companies.$inferSelect;
 export type NewCompany = typeof companies.$inferInsert;
@@ -256,3 +294,5 @@ export type FinanceTransactionRow = typeof financeTransactions.$inferSelect;
 export type NewFinanceTransactionRow = typeof financeTransactions.$inferInsert;
 export type CollaboratorRow = typeof collaborators.$inferSelect;
 export type NewCollaboratorRow = typeof collaborators.$inferInsert;
+export type ServiceOrderRow = typeof serviceOrders.$inferSelect;
+export type NewServiceOrderRow = typeof serviceOrders.$inferInsert;
