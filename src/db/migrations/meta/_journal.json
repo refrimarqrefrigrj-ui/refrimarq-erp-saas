@@ -127,6 +127,20 @@
       "when": 1784247138123,
       "tag": "20260717001218_finance_service_order_link",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1784251064994,
+      "tag": "20260717011744_service_order_photos",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1784251069298,
+      "tag": "20260717011749_service_order_photos_rls",
+      "breakpoints": true
     }
   ]
 }

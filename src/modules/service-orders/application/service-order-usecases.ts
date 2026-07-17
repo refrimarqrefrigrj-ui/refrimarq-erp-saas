@@ -12,6 +12,7 @@ import {
   type ServiceOrder,
   type ServiceOrderHistory,
   type ServiceOrderListItem,
+  type ServiceOrderPhoto,
 } from "../domain/service-order";
 import type { BillingGateway } from "./billing-gateway";
 import type { ServiceOrderRepository } from "./service-order-repository";
@@ -122,6 +123,15 @@ export async function deleteServiceOrder(
   id: string,
 ): Promise<void> {
   await repo.delete(ctx, id);
+}
+
+/** Caso de uso: fotos de uma OS. */
+export async function getServiceOrderPhotos(
+  repo: ServiceOrderRepository,
+  ctx: TenantContext,
+  serviceOrderId: string,
+): Promise<ServiceOrderPhoto[]> {
+  return repo.listPhotos(ctx, serviceOrderId);
 }
 
 /** Caso de uso: histórico de serviço (OS concluídas + totais). */

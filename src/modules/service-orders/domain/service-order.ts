@@ -59,6 +59,22 @@ export interface ServiceOrderListItem {
   createdAt: Date;
 }
 
+export const PHOTO_KINDS = ["chegada", "conclusao"] as const;
+export type PhotoKind = (typeof PHOTO_KINDS)[number];
+export const PHOTO_KIND_LABELS: Record<PhotoKind, string> = {
+  chegada: "Chegada",
+  conclusao: "Conclusão",
+};
+
+/** Foto de uma OS. O arquivo vive no storage; aqui só a URL. */
+export interface ServiceOrderPhoto {
+  id: string;
+  serviceOrderId: string;
+  kind: PhotoKind;
+  url: string;
+  createdAt: Date;
+}
+
 /** Item do histórico de serviço (OS concluída). */
 export interface ServiceOrderHistoryItem {
   id: string;

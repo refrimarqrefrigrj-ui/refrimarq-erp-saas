@@ -3,11 +3,15 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 
 import { requireTenantContext } from "@/lib/auth/tenant";
-import { getServiceOrder } from "@/modules/service-orders/application/service-order-usecases";
+import {
+  getServiceOrder,
+  getServiceOrderPhotos,
+} from "@/modules/service-orders/application/service-order-usecases";
 import { drizzleServiceOrderRepository } from "@/modules/service-orders/infrastructure/drizzle-service-order-repository";
 import { ServiceOrderForm } from "../service-order-form";
 import { DeleteOrderButton } from "../delete-order-button";
 import { loadServiceOrderOptions } from "../load-options";
+import { PhotoSection } from "./photo-section";
 
 export default async function EditOrdemPage({
   params,
@@ -17,9 +21,10 @@ export default async function EditOrdemPage({
   const { id } = await params;
   const ctx = await requireTenantContext();
 
-  const [order, opts] = await Promise.all([
+  const [order, opts, photos] = await Promise.all([
     getServiceOrder(drizzleServiceOrderRepository, ctx, id),
     loadServiceOrderOptions(ctx),
+    getServiceOrderPhotos(drizzleServiceOrderRepository, ctx, id),
   ]);
 
   if (!order) {
@@ -50,6 +55,29 @@ export default async function EditOrdemPage({
           equipmentOptions={opts.equipmentOptions}
           collaborators={opts.collaborators}
           initial={order}
+        />
+      </div>
+
+      {/* Fotos do serviço — o técnico registra a chegada e a conclusão */}
+      <div className="space-y-4 rounded-xl border bg-card p-6">
+        <div>
+          <h3 className="text-base font-semibold">Fotos do serviço</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
+            O técnico registra a foto ao chegar e ao concluir. No celular, o
+            botão abre a câmera direto.
+          </p>
+        </div>
+        <PhotoSection
+          serviceOrderId={order.id}
+          kind="chegada"
+          label="📷 Chegada"
+          photos={photos.filter((p) => p.kind === "chegada")}
+        />
+        <PhotoSection
+          serviceOrderId={order.id}
+          kind="conclusao"
+          label="✅ Conclusão"
+          photos={photos.filter((p) => p.kind === "conclusao")}
         />
       </div>
     </div>

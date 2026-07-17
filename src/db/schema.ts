@@ -277,6 +277,27 @@ export const serviceOrders = pgTable("service_orders", {
     .defaultNow(),
 });
 
+/**
+ * Foto de uma OS (tirada pelo técnico na chegada e na conclusão).
+ * O arquivo vive no object storage (Vercel Blob) — aqui guardamos só a URL.
+ * Dados de tenant (RLS).
+ */
+export const serviceOrderPhotos = pgTable("service_order_photos", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  companyId: uuid("company_id")
+    .notNull()
+    .references(() => companies.id, { onDelete: "cascade" }),
+  serviceOrderId: uuid("service_order_id")
+    .notNull()
+    .references(() => serviceOrders.id, { onDelete: "cascade" }),
+  // chegada | conclusao
+  kind: text("kind").notNull().default("chegada"),
+  url: text("url").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
 // Tipos inferidos para uso na aplicação (type-safe de ponta a ponta).
 export type Company = typeof companies.$inferSelect;
 export type NewCompany = typeof companies.$inferInsert;
@@ -300,3 +321,5 @@ export type CollaboratorRow = typeof collaborators.$inferSelect;
 export type NewCollaboratorRow = typeof collaborators.$inferInsert;
 export type ServiceOrderRow = typeof serviceOrders.$inferSelect;
 export type NewServiceOrderRow = typeof serviceOrders.$inferInsert;
+export type ServiceOrderPhotoRow = typeof serviceOrderPhotos.$inferSelect;
+export type NewServiceOrderPhotoRow = typeof serviceOrderPhotos.$inferInsert;

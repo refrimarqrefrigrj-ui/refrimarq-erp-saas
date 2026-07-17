@@ -4,6 +4,8 @@ import {
   collaborators,
   customers,
   serviceOrders,
+  serviceOrderPhotos,
+  type ServiceOrderPhotoRow,
   type ServiceOrderRow,
 } from "@/db/schema";
 import { withTenant } from "@/db/tenant";
@@ -11,12 +13,24 @@ import type { TenantContext } from "@/shared/domain";
 import type { ServiceOrderRepository } from "../application/service-order-repository";
 import type {
   NormalizedServiceOrder,
+  PhotoKind,
   ServiceOrder,
   ServiceOrderHistory,
   ServiceOrderListItem,
+  ServiceOrderPhoto,
   ServiceOrderStatus,
   ServiceOrderType,
 } from "../domain/service-order";
+
+function photoToDomain(row: ServiceOrderPhotoRow): ServiceOrderPhoto {
+  return {
+    id: row.id,
+    serviceOrderId: row.serviceOrderId,
+    kind: row.kind as PhotoKind,
+    url: row.url,
+    createdAt: row.createdAt,
+  };
+}
 
 function toDomain(row: ServiceOrderRow): ServiceOrder {
   return {
@@ -199,6 +213,62 @@ export const drizzleServiceOrderRepository: ServiceOrderRepository = {
         averageCents: count > 0 ? Math.round(totalCents / count) : 0,
         items: rows.map((r) => ({ ...r, type: r.type as ServiceOrderType })),
       };
+    });
+  },
+
+  async addPhoto(
+    ctx: TenantContext,
+    serviceOrderId: string,
+    kind: PhotoKind,
+    url: string,
+  ): Promise<ServiceOrderPhoto> {
+    return withTenant(ctx.tenantId, async (tx) => {
+      const [row] = await tx
+        .insert(serviceOrderPhotos)
+        .values({ companyId: ctx.tenantId, serviceOrderId, kind, url })
+        .returning();
+      return photoToDomain(row);
+    });
+  },
+
+  async listPhotos(
+    ctx: TenantContext,
+    serviceOrderId: string,
+  ): Promise<ServiceOrderPhoto[]> {
+    return withTenant(ctx.tenantId, async (tx) => {
+      const rows = await tx
+        .select()
+        .from(serviceOrderPhotos)
+        .where(eq(serviceOrderPhotos.serviceOrderId, serviceOrderId))
+        .orderBy(serviceOrderPhotos.createdAt);
+      return rows.map(photoToDomain);
+    });
+  },
+
+  async getPhoto(
+    ctx: TenantContext,
+    photoId: string,
+  ): Promise<ServiceOrderPhoto | null> {
+    return withTenant(ctx.tenantId, async (tx) => {
+      const [row] = await tx
+        .select()
+        .from(serviceOrderPhotos)
+        .where(eq(serviceOrderPhotos.id, photoId))
+        .limit(1);
+      return row ? photoToDomain(row) : null;
+    });
+  },
+
+  async deletePhoto(
+    ctx: TenantContext,
+    photoId: string,
+  ): Promise<string | null> {
+    return withTenant(ctx.tenantId, async (tx) => {
+      const [row] = await tx
+        .delete(serviceOrderPhotos)
+        .where(eq(serviceOrderPhotos.id, photoId))
+        .returning({ url: serviceOrderPhotos.url });
+      return row?.url ?? null;
     });
   },
 };
