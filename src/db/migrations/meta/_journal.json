@@ -120,6 +120,13 @@
       "when": 1784164974033,
       "tag": "20260716012254_service_orders_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1784247138123,
+      "tag": "20260717001218_finance_service_order_link",
+      "breakpoints": true
     }
   ]
 }

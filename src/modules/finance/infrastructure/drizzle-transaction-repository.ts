@@ -33,6 +33,7 @@ function toDomain(row: FinanceTransactionRow): FinanceTransaction {
     category: row.category,
     customerId: row.customerId,
     obraId: row.obraId,
+    serviceOrderId: row.serviceOrderId,
     notes: row.notes,
     createdAt: row.createdAt,
   };
@@ -48,6 +49,7 @@ function toValues(data: NormalizedTransaction) {
     paidDate: data.paidDate,
     category: data.category,
     customerId: data.customerId,
+    serviceOrderId: data.serviceOrderId ?? null,
     notes: data.notes,
   };
 }
@@ -136,6 +138,20 @@ export const drizzleTransactionRepository: TransactionRepository = {
   async delete(ctx: TenantContext, id: string): Promise<void> {
     await withTenant(ctx.tenantId, async (tx) => {
       await tx.delete(financeTransactions).where(eq(financeTransactions.id, id));
+    });
+  },
+
+  async existsForServiceOrder(
+    ctx: TenantContext,
+    serviceOrderId: string,
+  ): Promise<boolean> {
+    return withTenant(ctx.tenantId, async (tx) => {
+      const [row] = await tx
+        .select({ id: financeTransactions.id })
+        .from(financeTransactions)
+        .where(eq(financeTransactions.serviceOrderId, serviceOrderId))
+        .limit(1);
+      return Boolean(row);
     });
   },
 

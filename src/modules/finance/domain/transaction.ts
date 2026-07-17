@@ -22,6 +22,8 @@ export interface FinanceTransaction {
   category: string | null;
   customerId: string | null;
   obraId: string | null;
+  /** Preenchido quando o lançamento nasceu da conclusão de uma OS. */
+  serviceOrderId: string | null;
   notes: string | null;
   createdAt: Date;
 }
@@ -58,6 +60,8 @@ export interface NormalizedTransaction {
   paidDate: string | null;
   category: string | null;
   customerId: string | null;
+  /** Vínculo com a OS de origem (quando gerado automaticamente). */
+  serviceOrderId?: string | null;
   notes: string | null;
 }
 

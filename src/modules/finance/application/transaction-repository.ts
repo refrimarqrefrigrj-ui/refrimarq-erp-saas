@@ -57,4 +57,9 @@ export interface TransactionRepository {
   delete(ctx: TenantContext, id: string): Promise<void>;
   markPaid(ctx: TenantContext, id: string): Promise<void>;
   summary(ctx: TenantContext): Promise<FinanceSummary>;
+  /** Já existe lançamento gerado por esta OS? (evita duplicar) */
+  existsForServiceOrder(
+    ctx: TenantContext,
+    serviceOrderId: string,
+  ): Promise<boolean>;
 }

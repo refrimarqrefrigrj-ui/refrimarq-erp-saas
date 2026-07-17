@@ -8,8 +8,10 @@ import {
   createServiceOrder,
   updateServiceOrder,
   deleteServiceOrder,
+  concludeServiceOrder,
 } from "@/modules/service-orders/application/service-order-usecases";
 import { drizzleServiceOrderRepository } from "@/modules/service-orders/infrastructure/drizzle-service-order-repository";
+import { financeBillingGateway } from "@/modules/service-orders/infrastructure/finance-billing-gateway";
 
 export type ServiceOrderFormState = { error: string } | undefined;
 
@@ -27,6 +29,13 @@ function readInput(formData: FormData) {
   };
 }
 
+/** Concluir uma OS gera conta a receber — as telas de dinheiro precisam atualizar. */
+function revalidateAll() {
+  revalidatePath("/ordens");
+  revalidatePath("/financeiro");
+  revalidatePath("/dashboard");
+}
+
 export async function createServiceOrderAction(
   _prev: ServiceOrderFormState,
   formData: FormData,
@@ -36,10 +45,11 @@ export async function createServiceOrderAction(
     drizzleServiceOrderRepository,
     ctx,
     readInput(formData),
+    financeBillingGateway,
   );
   if (!result.ok) return { error: result.error.message };
 
-  revalidatePath("/ordens");
+  revalidateAll();
   redirect("/ordens");
 }
 
@@ -54,10 +64,11 @@ export async function updateServiceOrderAction(
     ctx,
     id,
     readInput(formData),
+    financeBillingGateway,
   );
   if (!result.ok) return { error: result.error.message };
 
-  revalidatePath("/ordens");
+  revalidateAll();
   redirect("/ordens");
 }
 
@@ -68,6 +79,20 @@ export async function deleteServiceOrderAction(
   const id = String(formData.get("id") ?? "");
   await deleteServiceOrder(drizzleServiceOrderRepository, ctx, id);
 
-  revalidatePath("/ordens");
+  revalidateAll();
   redirect("/ordens");
+}
+
+/** Ação rápida: concluir a OS na lista (gera a conta a receber). */
+export async function concludeOrderAction(formData: FormData): Promise<void> {
+  const ctx = await requireTenantContext();
+  const id = String(formData.get("id") ?? "");
+  await concludeServiceOrder(
+    drizzleServiceOrderRepository,
+    ctx,
+    id,
+    financeBillingGateway,
+  );
+
+  revalidateAll();
 }

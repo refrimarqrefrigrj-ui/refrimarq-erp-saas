@@ -206,6 +206,10 @@ export const financeTransactions = pgTable("finance_transactions", {
     onDelete: "set null",
   }),
   obraId: uuid("obra_id").references(() => obras.id, { onDelete: "set null" }),
+  // Origem: quando o lançamento foi gerado ao concluir uma OS.
+  serviceOrderId: uuid("service_order_id").references(() => serviceOrders.id, {
+    onDelete: "set null",
+  }),
   notes: text("notes"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()

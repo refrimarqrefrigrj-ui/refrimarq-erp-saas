@@ -1,5 +1,12 @@
 import Link from "next/link";
-import { Plus, ClipboardList, Hammer, CheckCircle2, FolderOpen } from "lucide-react";
+import {
+  Plus,
+  ClipboardList,
+  Hammer,
+  CheckCircle2,
+  FolderOpen,
+  Check,
+} from "lucide-react";
 
 import { requireTenantContext } from "@/lib/auth/tenant";
 import { listServiceOrders } from "@/modules/service-orders/application/service-order-usecases";
@@ -27,6 +34,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { concludeOrderAction } from "./actions";
 
 const STATUS_CLASSES: Record<ServiceOrderStatus, string> = {
   aberta: "bg-muted text-muted-foreground",
@@ -157,6 +165,7 @@ export default async function OrdensPage({
                 <TableHead>Técnico</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Valor</TableHead>
+                <TableHead />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -186,6 +195,17 @@ export default async function OrdensPage({
                   </TableCell>
                   <TableCell className="text-right font-medium">
                     {formatBRLFromCents(o.valueCents)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {o.status !== "concluida" && o.status !== "cancelada" ? (
+                      <form action={concludeOrderAction}>
+                        <input type="hidden" name="id" value={o.id} />
+                        <Button type="submit" variant="ghost" size="sm">
+                          <Check className="h-4 w-4" />
+                          Concluir
+                        </Button>
+                      </form>
+                    ) : null}
                   </TableCell>
                 </TableRow>
               ))}
