@@ -1,4 +1,4 @@
-import { and, desc, eq, ilike, sql } from "drizzle-orm";
+import { and, desc, eq, gte, ilike, lte, sql } from "drizzle-orm";
 
 import {
   collaborators,
@@ -12,6 +12,7 @@ import type { ServiceOrderRepository } from "../application/service-order-reposi
 import type {
   NormalizedServiceOrder,
   ServiceOrder,
+  ServiceOrderHistory,
   ServiceOrderListItem,
   ServiceOrderStatus,
   ServiceOrderType,
@@ -141,6 +142,63 @@ export const drizzleServiceOrderRepository: ServiceOrderRepository = {
   async delete(ctx: TenantContext, id: string): Promise<void> {
     await withTenant(ctx.tenantId, async (tx) => {
       await tx.delete(serviceOrders).where(eq(serviceOrders.id, id));
+    });
+  },
+
+  async history(
+    ctx: TenantContext,
+    opts?: { from?: string; to?: string; collaboratorId?: string },
+  ): Promise<ServiceOrderHistory> {
+    return withTenant(ctx.tenantId, async (tx) => {
+      const conds = [eq(serviceOrders.status, "concluida")];
+      if (opts?.from) {
+        conds.push(gte(serviceOrders.closedAt, new Date(`${opts.from}T00:00:00`)));
+      }
+      if (opts?.to) {
+        conds.push(lte(serviceOrders.closedAt, new Date(`${opts.to}T23:59:59.999`)));
+      }
+      if (opts?.collaboratorId) {
+        conds.push(eq(serviceOrders.collaboratorId, opts.collaboratorId));
+      }
+      const where = and(...conds);
+
+      const [agg] = await tx
+        .select({
+          count: sql<string>`count(*)`,
+          total: sql<string>`coalesce(sum(${serviceOrders.valueCents}), 0)`,
+        })
+        .from(serviceOrders)
+        .where(where);
+
+      const rows = await tx
+        .select({
+          id: serviceOrders.id,
+          number: serviceOrders.number,
+          customerName: customers.name,
+          collaboratorName: collaborators.name,
+          type: serviceOrders.type,
+          closedAt: serviceOrders.closedAt,
+          valueCents: serviceOrders.valueCents,
+        })
+        .from(serviceOrders)
+        .innerJoin(customers, eq(customers.id, serviceOrders.customerId))
+        .leftJoin(
+          collaborators,
+          eq(collaborators.id, serviceOrders.collaboratorId),
+        )
+        .where(where)
+        .orderBy(sql`${serviceOrders.closedAt} desc nulls last`)
+        .limit(200);
+
+      const count = Number(agg.count);
+      const totalCents = Number(agg.total);
+
+      return {
+        count,
+        totalCents,
+        averageCents: count > 0 ? Math.round(totalCents / count) : 0,
+        items: rows.map((r) => ({ ...r, type: r.type as ServiceOrderType })),
+      };
     });
   },
 };

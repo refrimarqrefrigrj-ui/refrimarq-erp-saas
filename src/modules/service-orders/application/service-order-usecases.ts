@@ -10,6 +10,7 @@ import {
   type CreateServiceOrderInput,
   type NormalizedServiceOrder,
   type ServiceOrder,
+  type ServiceOrderHistory,
   type ServiceOrderListItem,
 } from "../domain/service-order";
 import type { BillingGateway } from "./billing-gateway";
@@ -121,4 +122,13 @@ export async function deleteServiceOrder(
   id: string,
 ): Promise<void> {
   await repo.delete(ctx, id);
+}
+
+/** Caso de uso: histórico de serviço (OS concluídas + totais). */
+export async function getServiceHistory(
+  repo: ServiceOrderRepository,
+  ctx: TenantContext,
+  opts?: { from?: string; to?: string; collaboratorId?: string },
+): Promise<ServiceOrderHistory> {
+  return repo.history(ctx, opts);
 }

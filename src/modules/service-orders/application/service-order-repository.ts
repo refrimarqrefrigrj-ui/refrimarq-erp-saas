@@ -2,6 +2,7 @@ import type { TenantContext } from "@/shared/domain";
 import type {
   NormalizedServiceOrder,
   ServiceOrder,
+  ServiceOrderHistory,
   ServiceOrderListItem,
 } from "../domain/service-order";
 
@@ -22,4 +23,12 @@ export interface ServiceOrderRepository {
     data: NormalizedServiceOrder,
   ): Promise<ServiceOrder | null>;
   delete(ctx: TenantContext, id: string): Promise<void>;
+  /**
+   * Histórico de serviço: OS concluídas (mais recentes primeiro), com
+   * total e ticket médio. Filtros opcionais por data de conclusão e técnico.
+   */
+  history(
+    ctx: TenantContext,
+    opts?: { from?: string; to?: string; collaboratorId?: string },
+  ): Promise<ServiceOrderHistory>;
 }

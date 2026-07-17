@@ -59,6 +59,26 @@ export interface ServiceOrderListItem {
   createdAt: Date;
 }
 
+/** Item do histórico de serviço (OS concluída). */
+export interface ServiceOrderHistoryItem {
+  id: string;
+  number: number;
+  customerName: string;
+  collaboratorName: string | null;
+  type: ServiceOrderType;
+  closedAt: Date | null;
+  valueCents: number;
+}
+
+/** Histórico de serviço com os totais do período. */
+export interface ServiceOrderHistory {
+  count: number;
+  totalCents: number;
+  /** Ticket médio = total / quantidade. */
+  averageCents: number;
+  items: ServiceOrderHistoryItem[];
+}
+
 export interface CreateServiceOrderInput {
   customerId: string;
   equipmentId?: string | null;
